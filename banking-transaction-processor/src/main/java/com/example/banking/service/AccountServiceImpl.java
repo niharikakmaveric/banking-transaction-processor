@@ -77,6 +77,31 @@ public class AccountServiceImpl implements AccountService {
     public void transfer(UUID fromAccountId,
                          UUID toAccountId,
                          BigDecimal amount) {
+
+        if (amount.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new InvalidAmountException("Amount must be greater than zero.");
+        }
+
+        if (fromAccountId.equals(toAccountId)) {
+            throw new InvalidAmountException(
+                    "Source and destination accounts cannot be the same.");
+        }
+
+        Account fromAccount = getAccount(fromAccountId);
+        Account toAccount = getAccount(toAccountId);
+
+        if (fromAccount.getBalance().compareTo(amount) < 0) {
+            throw new InsufficientFundsException("Insufficient balance.");
+        }
+
+        fromAccount.withdraw(amount);
+        toAccount.deposit(amount);
+
+        accountRepository.save(fromAccount);
+        accountRepository.save(toAccount);
+
+        recordTransaction(fromAccount, TransactionType.TRANSFER_OUT, amount);
+        recordTransaction(toAccount, TransactionType.TRANSFER_IN, amount);
     }
 
     @Override
